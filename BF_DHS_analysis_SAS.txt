@@ -1,0 +1,396 @@
+*** Burkina Faso Demographic and health survey data cleaning and analysis;
+
+*** Data cleaning; 
+
+
+*Step 1: Reference libraries; 
+libname rdata "C:\Users\DEGNINOU\Desktop\HIV Burkina\Raw data"; *Raw data files;
+libname hivd "C:\Users\DEGNINOU\Desktop\HIV Burkina\HIV data"; *HIV data;
+libname mergin "C:\Users\DEGNINOU\Desktop\HIV Burkina\Raw and HIV"; *Raw data merged with HIV data; 
+libname crdata "C:\Users\DEGNINOU\Desktop\HIV Burkina\PreCleaned"; *Data with variables of interest only;
+libname dfus "C:\Users\DEGNINOU\Desktop\HIV Burkina\Merged M and F"; *Merged mal and female data;
+libname dfus1 "C:\Users\DEGNINOU\Desktop\HIV Burkina\SAS Working data"; *Working data; 
+run; 
+
+*Step 2: Change HIV variable names to match variable names for cluster, household, 
+and line numbers in men and women files  |Cluster House Line;
+data hivd.hivm_bf; *HIV data in Burkina;
+set rdata.hiv_bf (rename=(HIVCLUST= Cluster HIVNUMB= House HIVLINE= Line));
+data hivd.hivw_bf;
+set rdata.hiv_bf (rename=(HIVCLUST= Cluster HIVNUMB= House HIVLINE= Line));
+run;
+
+*Step 3: Sort HIV data by cluter, household and line number;
+proc sort data=hivd.hivm_bf; *Men and women in Burkina;
+by Cluster House Line;   
+proc sort data=hivd.hivw_bf;
+by Cluster House Line; 
+run;
+
+*Step 4:Keep and rename variables of interest and add Gender: 1=Men, 2=Women;
+data crdata.men_bf1;
+set rdata.men_bf (keep=
+MCASEID	MV106	MV754DP	MV778	MV791
+MV130	MV754JP	MV779	MV793 
+MV155	MV754WP	MV777   MV005	
+MV000	MV157	MV823	MV780	
+MV001	MV158	MV756	MV525	
+MV002	MV159	MV774A	MV766B	
+MV003	MV190	MV774B	MV762AZ	
+MV012	MV501	MV774C	MV762BZ	
+MV101	MV751	MV824	MV769A	
+MV102	MV754CP	MV825	MV769);	
+Gender=1;
+run;
+data crdata.men_bf2;
+set crdata.men_bf1 (rename =
+(MCASEID= ID
+MV000 	= Country
+MV001	= Cluster
+MV002	= House
+MV003	= Line
+MV005   = WVAR
+MV012 	= Age
+MV101	= Region
+MV102	= Resid
+MV106	= Educ
+MV130	= Relig
+MV155	= Liter
+MV157 	= Read
+MV158	= Liste
+MV159	= Watch
+MV190	= Wealf
+MV501	= Marit
+MV751 	= Know0
+MV754CP	= Know1
+MV754DP	= Know2
+MV754JP	= Beli1
+MV754WP	= Beli2
+MV823 	= Beli3
+MV756	= Beli4
+MV774A	= MTCT1
+MV774B	= MTCT2
+MV774C	= MTCT3
+MV824	= MTCT4
+MV825 	= Stgm1
+MV778 	= Stgm2
+MV779	= Stgm3
+MV777 	= Stgm4
+MV780 	= YEduc
+MV525	= FSex
+MV762AZ	= Nsorc1
+MV762BZ = Nsorc2
+MV769A  = CdomF
+MV769 	= CdomM));
+run; *Men in Burkina Faso;
+data crdata.women_bf1;
+set rdata.women_bf (keep=
+CASEID	V106	V754DP	V778 
+V130	V754JP	V779    V005
+V155	V754WP	V777 
+V000 	V157 	V823 	V780 
+V001	V158	V756	V525
+V002	V159	V774A	V762AZ
+V003	V190	V774B	V762BZ  
+V012 	V501	V774C	V769A  
+V101	V751 	V824	V769 
+V102	V754CP	V825);	
+Gender=2;
+run;
+data crdata.women_bf2;
+set crdata.women_bf1 (rename =
+(CASEID	= ID
+V000 	= Country
+V001	= Cluster
+V002	= House
+V003	= Line
+V005    = WVAR
+V012 	= Age
+V101	= Region
+V102	= Resid
+V106	= Educ
+V130	= Relig
+V155	= Liter
+V157 	= Read
+V158	= Liste
+V159	= Watch
+V190	= Wealf
+V501	= Marit
+V751 	= Know0
+V754CP	= Know1
+V754DP	= Know2
+V754JP	= Beli1
+V754WP	= Beli2
+V823 	= Beli3
+V756	= Beli4
+V774A	= MTCT1
+V774B	= MTCT2
+V774C	= MTCT3
+V824	= MTCT4
+V825 	= Stgm1
+V778 	= Stgm2
+V779	= Stgm3
+V777 	= Stgm4
+V780 	= YEduc
+V525	= FSex
+V762AZ	= Nsorc1
+V762BZ  = Nsorc2
+V769A  	= CdomF
+V769 	= CdomM)); 
+run; *Women in Burkina; 
+
+*Step 5: Sort raw data by cluter, household and line number;
+proc sort data=crdata.men_bf2; *Men and women in Burkina; 
+by Cluster House Line;   
+proc sort data=crdata.women_bf2;
+by Cluster House Line;
+run; 
+
+*Step 6: Merge HIV and raw data by cluter, household and line number;
+data mergin.mbf; *Men in Burkina;
+merge crdata.men_bf2 hivd.hivm_bf;
+by Cluster House Line;
+data mergin.wbf; *Women in Burkina; 
+merge crdata.women_bf2 hivd.hivw_bf;
+by Cluster House Line;
+run;
+
+*Step 6: Concatenated data of men and women; 
+data dfus.burkina;
+set mergin.mbf mergin.wbf;
+run;
+
+*Reclassification and creation of composite variables;
+data dfus.burkina2;
+set dfus.burkina; 
+TATT = (Stgm1 + Stgm2 + Stgm3 + Stgm4);
+TKNO = (Know1 + Know2 + Beli1 + Beli2 + Beli4);
+TMTCT = (MTCT3 + MTCT4);
+KNOW12 = (Know1 + Know2);
+if TATT EQ 4 then CATT = 1;
+if TATT LT 4 or TATT GT 4 then CATT = 0;
+if TKNO EQ 5 then CKNO = 1;
+if TKNO LT 5 or TKNO GT 5 then CKNO = 0;
+if TMTCT EQ 2 then CMTCT = 1;
+if TMTCT LT 2 or TMTCT GT 2 then CMTCT = 0; 
+if KNOW12 EQ 2 then PREV = 1;
+if KNOW12 LT 2 or KNOW12 GT 2 then PREV = 0;
+if Age LE 24 then AGroup = '15-24';
+if Age GE 25 and Age LE 29 then AGroup = '25-29';
+if Age GE 30 and Age LE 39 then AGroup = '30-39';
+if Age GE 40 then AGroup = '40+';
+if FSex GE 1 and FSex LE 14 then FSGroup = 0;
+if FSex GE 15 and FSex LE 49 or FSex = 0 or FSex=96 or FSex=97 or FSex = 98 then FSGroup = 1;
+if Liter = 0 or Liter = 4 then LGroup = 0;
+if Liter = 1 or Liter = 2 then LGroup = 1;
+if Liter = 3 or Liter = 9 then LGroup = .;
+if Marit = 0 then MGroup = 'Never in union';
+if Marit = 1 or Marit = 2 then MGroup = 'Married/With partner';
+if Marit = 3 or Marit = 4 or Marit = 5 then MGroup = 'Widowed/Divorced/Separated';
+if Wealf = 1 then WGroup = 1;
+if Wealf = 2 then WGroup = 1;
+if Wealf = 3 then WGroup = 2;
+if Wealf = 4 then WGroup = 3;
+if Wealf = 5 then WGroup = 3;  
+if HIV03 = . or HIV03 = 9 then delete;
+if HIV03 = 0 then HIVTest = 0;
+if HIV03 = 1 or HIV03 = 2 then HIVTest = 1;
+WVARF = WVAR / 1000000;
+run;
+
+*Delete rows with empty IDs;
+data dfus.burkina3;
+set dfus.burkina2 (where=(ID ne ''));
+run;
+
+*Working data;
+data dfus1.bf;
+set dfus.burkina3;
+array miss EDUC Liste Read Watch;
+do over miss;
+if miss=9 then miss=.;
+end;
+run;
+
+proc contents data = dfus1.bf;
+run;
+
+
+libname dfus "C:\Users\DEGNINOU\Desktop\HIV Burkina\Merged M and F"; *Merged mal and female data;
+libname dfus1 "C:\Users\DEGNINOU\Desktop\HIV Burkina\Working data"; *Working data; 
+run; 
+
+data dfus1.bf;
+set dfus.bf1; 
+array miss CdomF CdomM MTCT1 MTCT2 MTCT3 MTCT4 Nsorc1 Nsorc2 YEduc;
+do over miss;
+if miss=9 then miss=.;
+if miss=8 then miss=.;
+end;
+run;
+
+** Compute frquency distributions;
+
+data clusta (drop = PrevNo	
+PrevYes	
+MTCT1	
+CATT1	
+YEduc1	
+Nocond0	
+NFCond1	
+NFCond0 F10);
+set clust;
+Prev = (PrevYes/15389)/10000;
+MTCT = (MTCT1/15389)/10000;
+CATT = (CATT1/15389)/10000;
+YEduc = (YEduc1/14771)/10000;
+Cond = (Nocond0/15376)/10000;
+FCond = (NFCond0/15352)/10000;
+run; 
+
+
+libname dhswa "C:\Users\DEGNINOU\Desktop\HIV Burkina\Working data";
+run;
+
+proc freq data = dhswa.bf;
+table cluster * NSorc2 / nocol norow nopercent;
+run; 
+
+
+data clusta (drop = Prev1	
+Tprev	
+MTCT1	
+TMTCT	
+CATT1	
+TCATT	
+YEduc1	
+Teduc	
+Cond	
+Tcond	
+Fcond	
+TFCond);
+set clust;
+Prev = (Prev1/Tprev)*100;	
+MTCT = (MTCT1/TMTCT)*100;	
+CATT = (CATT1/TCATT)*100;
+YEduc = (YEduc1/Teduc)*100;	
+Nocond = (Cond/Tcond)*100;	
+NFCond = (Fcond/TFCond)*100;
+run; 
+
+
+
+proc format; 
+value Resid 1 = 'Urban'
+            2 = 'Rural';
+value BFReg 1 = "Boucle de Mouhoun"
+			2 = "Cascades"
+			3 = "Centre"
+			4 = "Centre-Est"
+			5 = "Centre-Nord"
+			6 = "Centre-Ouest"
+			7 = "Centre-Sud"
+			8 = "Est"
+			9 = "Hauts Basins"
+			10 = "Nord"
+			11 = "Plateau Central"
+			12 = "Sahel"
+			13 = "Sud-Ouest";
+run;
+
+libname dhswa "C:\Users\DEGNINOU\Desktop\HIV Burkina\Working data";
+run;
+
+*proc sort data = dhswa.bf;
+*by resid;  
+
+proc freq data = dhswa.bf order=formatted;
+table Region * (Prev CMTCT CATT YEduc NSorc1 NSorc2)  / nocol nopercent;
+format REGION BFReg.;
+run; 
+
+
+proc tabulate data = dhswa.bf; *order=formatted;
+class region resid prev;
+table (Region),resid*(Prev ALL)*(n rowpctn);
+format REGION BFReg. resid Resid.;
+keylabel rowpctn = '(%)';
+run; 
+
+** Socio demographic characteristics; 
+proc format; 
+value GEND 1 = 'Men'
+		   2 = 'Women'; 
+value Resid 1 = 'Urban'
+            2 = 'Rural';
+value Educ 0 = 'No education, preschool'
+		   1 = 'Primary'
+           2 = 'Secondary'
+           3 = 'Higher'
+           8 = "Don't know";
+value LRW 0 = 'Not at all'
+		  1 = 'Less than once a week'
+		  2 = 'At least once a week'
+		  3 = 'Almost every day';
+value Wealf 1 = 'Poor'
+			2 = 'Middle'
+			3 = 'Rich';
+run;
+
+libname dhswa "C:\Users\DEGNINOU\Desktop\HIV Burkina\SAS Working data";
+run;
+
+title "Demographic caracteristics in Burkina";
+proc freq data = dhswa.bf;
+table (AGROUP MGROUP EDUC WGroup GENDER LGroup Liste Read Watch HIVTEST)*RESID / nocol chisq;
+format GENDER GEND. RESID Resid. EDUC Educ. Liste LRW. Read LRW. Watch LRW. WGroup Wealf.;
+run; 
+
+title 'Age description for Burkina';
+proc univariate data = dhswa.bf;
+var Age;
+class RESID;
+format RESID Resid.; 
+run;
+
+PROC ANOVA data = dhswa.bf; 
+     CLASS RESID;
+	 format RESID Resid.; 
+     MODEL Age=RESID; 
+ RUN;
+ proc contents data = dhswa.bf;
+ run;
+
+
+** Logistic regression
+*Reclassification and creation of composite variables;
+libname dfus 'C:\Users\DEGNINOU\Desktop\HIV Burkina\Working data';
+run;
+data dfus.bf2;
+set dfus.bf1; 
+if (Beli1+Beli2) EQ 0 then Beli =1;
+if (Beli1+Beli2) GT 0 then Beli =0;
+TKNO1 = (Know1 + Know2 + Beli + Beli4);
+if TKNO1 EQ 4 then CKNOW = 1;
+if TKNO1 LT 4 or TKNO1 GT 4 then CKNOW = 0;
+TATT1 = (Stgm1 + Stgm2 + Stgm3 + Stgm4);
+if TATT1 EQ 3 then CATT1 = 1;
+if TATT1 LT 3 or TATT1 GT 3 then CATT1 = 0;
+run;
+proc format; 
+value Resid 1 = 'Urban'
+            2 = 'Rural';
+run;
+Title "OR Comprehensive knowlegde2";
+proc freq data = dfus.bf2;
+table RESID*CKNOW/ nocol nopercent chisq;
+exact pchi or;
+format RESID Resid.;
+run; 
+Title "OR Full attitude2";
+proc freq data = dfus.bf2;
+table RESID*CATT1/ nocol nopercent chisq;
+exact pchi or;
+format RESID Resid.;
+run; 
+
